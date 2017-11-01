@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script src="Lib/jquery-3.2.1.min.js"></script>
+<script src="Lib/pubnub.min.js"></script>
+<script type="text/javascript">
+
+    var temp;
+    var humid;
+    var sac_temp;
+
+    //initiate pub-nub object
+    pubnub = new PubNub({
+        publishKey: 'pub-c-b5098184-8741-481d-918f-6e08c2116ce0',
+        subscribeKey: 'sub-c-b27bafae-b390-11e7-8f6d-3a18aff742a6',
+        ssl: true
+    });
+
+    pubnub.subscribe({
+        channels: ['Temperature_Status_Channel','Temperature_Command_Channel']
+    });
+
+    pubnub.addListener({
+        message: function(message){
+            console.log(message)
+            if(message.channel == 'Temperature_Status_Channel'){
+                data = message.message
+                temp = data['temperature']
+                humid = data['humidity']
+                sac_temp = data['sac_temperature']
+                display_data()
+            }
+        }
+    });
+    
+    $(document).ready(function () {
+        request_data();
+
+        $("#temp-change-button").click(function () {
+            required_temp = $("#sac-temp-input").val()
+            change_temp(required_temp)
+        })
+    })
+    function display_data() {
+        $("#temp-label").text(temp + " degrees C")
+        $("#humidity-label").text(humid + " %")
+        $("#sac-temp-input").val(sac_temp)
+    };
+
+    //publish a request to the pi controller to send back the current temperature and humidity and sac_temperature
+    function request_data() {
+        var publishConfig = {
+            channel: 'Temperature_Command_Channel',
+            message:{'Request':'Get_Data'}
+        }
+        pubnub.publish(publishConfig,function (status,response) {
+            console.log(status,response)
+        })
+    }
+
+    //publishes a request to change the temperature
+    function change_temp(temp) {
+        var publishConfig = {
+            channel: 'Temperature_Command_Channel',
+            message:{'Request':'Change_Temp','Temperature':temp}
+        }
+        pubnub.publish(publishConfig,function (status,response) {
+            console.log(status,response)
+            //after changing the temp re-request the data
+            request_data()
+        })
+    }
+
+</script>
+
+<h1>Smart Temperature Controller</h1>
+<br>
+<label>Current Temperature:</label> <label id="temp-label">Loading...</label>
+<br>
+<br>
+<label>Current Humidity:</label> <label id="humidity-label">Loading...</label>
+<br>
+<br>
+<label>Temperature Control (degrees C):</label> <input id="sac-temp-input" type="number" name="quantity" min="16" max="26">
+<button id="temp-change-button">Change Temperature</button>
+
+<br>
+<br>
+</body>
+</html>
