@@ -21,13 +21,13 @@
     });
 
     pubnub.subscribe({
-        channels: ['Temperature_Status_Channel','Temperature_Command_Channel']
+        channels: ['Temperature_Data_Load_Channel','Temperature_Command_Channel']
     });
 
     pubnub.addListener({
         message: function(message){
             console.log(message)
-            if(message.channel == 'Temperature_Status_Channel'){
+            if(message.channel == 'Temperature_Data_Load_Channel'){
                 data = message.message
                 temp = data['temperature']
                 humid = data['humidity']
@@ -36,9 +36,11 @@
             }
         }
     });
-    
+
     $(document).ready(function () {
-        request_data();
+            request_data()
+
+
 
         $("#temp-change-button").click(function () {
             required_temp = $("#sac-temp-input").val()
@@ -55,7 +57,7 @@
     function request_data() {
         var publishConfig = {
             channel: 'Temperature_Command_Channel',
-            message:{'Request':'Get_Data'}
+            message:{'Request':'Get_Data_Load'}
         }
         pubnub.publish(publishConfig,function (status,response) {
             console.log(status,response)
@@ -70,8 +72,6 @@
         }
         pubnub.publish(publishConfig,function (status,response) {
             console.log(status,response)
-            //after changing the temp re-request the data
-            request_data()
         })
     }
 
